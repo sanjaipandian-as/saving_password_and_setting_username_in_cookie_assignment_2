@@ -50,9 +50,11 @@ async function getSHA256Hash() {
     return cached;
   }
 
-  cached = await sha256(getRandomArbitrary(MIN, MAX));
-  store('sha256', cached);
-  return cached;
+  const randomNumber = getRandomArbitrary(MIN, MAX);
+  const hash = await sha256(randomNumber.toString());
+  store('sha256', hash);
+  store('randomNumber', randomNumber);  // Store the random number
+  return hash;
 }
 
 async function main() {
@@ -65,30 +67,41 @@ async function test() {
   const pin = pinInput.value;
 
   if (pin.length !== 3) {
-    resultView.innerHTML = '💡 not 3 digits';
+    resultView.innerHTML = '💡 Please enter exactly 3 digits.';
     resultView.classList.remove('hidden');
     return;
   }
 
-  const sha256HashView = document.getElementById('sha256-hash');
-  const hasedPin = await sha256(pin);
+  // Retrieve the stored random number from local storage
+  const storedRandomNumber = retrieve('randomNumber');
+  if (!storedRandomNumber) {
+    resultView.innerHTML = '❌ Failed to retrieve stored number.';
+    resultView.classList.remove('hidden');
+    return;
+  }
 
-  if (hasedPin === sha256HashView.innerHTML) {
-    resultView.innerHTML = '🎉 success';
+  // Hash the entered PIN
+  const hashedPin = await sha256(pin);
+
+  // Compare the entered hash with the stored hash
+  const storedHash = sha256HashView.innerHTML;
+
+  if (hashedPin === storedHash) {
+    resultView.innerHTML = '🎉 Success!';
     resultView.classList.add('success');
   } else {
-    resultView.innerHTML = '❌ failed';
+    resultView.innerHTML = '❌ Incorrect PIN';
   }
   resultView.classList.remove('hidden');
 }
 
-// ensure pinInput only accepts numbers and is 3 digits long
+// Ensure pinInput only accepts numbers and is 3 digits long
 pinInput.addEventListener('input', (e) => {
   const { value } = e.target;
   pinInput.value = value.replace(/\D/g, '').slice(0, 3);
 });
 
-// attach the test function to the button
+// Attach the test function to the button
 document.getElementById('check').addEventListener('click', test);
 
 main();
